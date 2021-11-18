@@ -9,20 +9,15 @@ services:
   worker_a:
     build: .
     restart: on-failure
-    links:
-      - rabbit
     command: ["python", "./src/worker_A.py"]
 
   worker_b:
     build: .
     restart: on-failure
-    links:
-      - rabbit
-      # - mongodb
     command: ["python", "./src/worker_B.py"]
 
-  # mongodb:
-  #   image: mongo
-  #   ports:
-  #     - "27017:27017"
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
 

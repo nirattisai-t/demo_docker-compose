@@ -10,7 +10,7 @@ def main():
     channel.queue_declare(queue='queue_B')
 
     def callback(ch, method, properties, body):
-        print(f'Message received: {body.decode("utf-8")}')
+        print(f'Message received: {body.decode("utf-8")}',flush=True)
 
         # worker_B publish the message to mongodb
 

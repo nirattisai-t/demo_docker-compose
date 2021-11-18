@@ -1,7 +1,7 @@
 import pika, sys, os
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host="172.17.0.1"))
     channel = connection.channel()
 
     channel.queue_declare(queue='queue_A')
@@ -10,7 +10,7 @@ def main():
 
     def callback(ch, method, properties, body):
         ch.basic_publish(exchange='', routing_key='queue_B', body=body)
-        print(f'Message received: {body.decode("utf-8")}')
+        print(f'Message received: {body.decode("utf-8")}', flush=True)
 
     channel.basic_consume(queue='queue_A', on_message_callback=callback, auto_ack=True)
 

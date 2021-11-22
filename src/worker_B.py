@@ -1,23 +1,26 @@
 import pika, sys, os
 from pymongo import MongoClient
+import json
+
 def main():
 
     def callback(ch, method, properties, body):
         body = body.decode("utf-8")
+        body = json.loads(body)
         print(f'Message received: {body}',flush=True)
 
-        # worker_B publish the message to mongodb
-        post = {"message": body}
-        
-        collection.insert_one(post)
+        # worker_B publish the message to mongodb        
+        collection.insert_one(body)
 
-
+    ## add logic to do the operant
+    ## remove gateway connection and use service name instead
+    
     # Mongodb connection
-    client = MongoClient(host="172.17.0.1",port=27017)
+    client = MongoClient(host="mongodb")
     collection = client['test_db']['test_collection']
 
     # RabbitMQ connection
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='172.17.0.1'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbit'))
     channel = connection.channel()
 
     channel.queue_declare(queue='queue_B')

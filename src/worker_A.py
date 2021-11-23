@@ -10,31 +10,41 @@ def main():
 
 
     def callback(ch, method, properties, body):
-
+        has_error = False
         # Calculate
         # {"operands":[int:x1, int:x2], "operator":"+"}
         # Assume 2 operands, if operator = "-" --> x1 - x2
-        body_dict = json.loads(body.decode("utf-8"))
-        print(f'Message received: {body}', flush=True)
+        try:
+            body_dict = json.loads(body.decode("utf-8"))
+            print(f'Message received: {body}', flush=True)
 
-        if body_dict["operator"] == "+": 
-            body_dict["result"] = body_dict["operands"][0] + body_dict["operands"][1]
-        
-        elif body_dict["operator"] == "-": 
-            body_dict["result"] = body_dict["operands"][0] - body_dict["operands"][1]
-        
-        elif body_dict["operator"] == "*": 
-            body_dict["result"] = body_dict["operands"][0] * body_dict["operands"][1]
-        
-        elif body_dict["operator"] == "/": 
-            body_dict["result"] = body_dict["operands"][0] / body_dict["operands"][1]
-        
-        # else:
-        # add exception scenario
+            if body_dict["operator"] == "+": 
+                body_dict["result"] = body_dict["operands"][0] + body_dict["operands"][1]
+            
+            elif body_dict["operator"] == "-": 
+                body_dict["result"] = body_dict["operands"][0] - body_dict["operands"][1]
+            
+            elif body_dict["operator"] == "*": 
+                body_dict["result"] = body_dict["operands"][0] * body_dict["operands"][1]
+            
+            elif body_dict["operator"] == "/": 
+                body_dict["result"] = body_dict["operands"][0] / body_dict["operands"][1]
+            
+            # else:
+            # add exception scenario
+            else:
+                has_error = True
 
-        result_json = json.dumps(body_dict)
+            if has_error:    
+                ch.basic_nack(delivery_tag = method.delivery_tag,requeue = True)
+            else:
+                ch.basic_ack(delivery_tag = method.delivery_tag)
+                result_json = json.dumps(body_dict)
 
-        ch.basic_publish(exchange='', routing_key='queue_B', body=result_json)
+                ch.basic_publish(exchange='', routing_key='queue_B', body=result_json)
+        except:
+                print("except", flush=True)
+                ch.basic_nack(delivery_tag = method.delivery_tag ,requeue = True)
 
     
 

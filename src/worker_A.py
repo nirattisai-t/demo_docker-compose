@@ -25,27 +25,27 @@ def main():
         # {"operands":[int:x1, int:x2], "operator":"+"}
         # Assume 2 operands, if operator = "-" --> x1 - x2
         try:
-            body_dict = json.loads(body.decode("utf-8"))
+            message_dict = json.loads(body.decode("utf-8"))
             print(f"Message received: {body}", flush=True)
 
-            if body_dict["operator"] == "+":
-                body_dict["result"] = (
-                    body_dict["operands"][0] + body_dict["operands"][1]
+            if message_dict["operator"] == "+":
+                message_dict["result"] = (
+                    message_dict["operands"][0] + message_dict["operands"][1]
                 )
 
-            elif body_dict["operator"] == "-":
-                body_dict["result"] = (
-                    body_dict["operands"][0] - body_dict["operands"][1]
+            elif message_dict["operator"] == "-":
+                message_dict["result"] = (
+                    message_dict["operands"][0] - message_dict["operands"][1]
                 )
 
-            elif body_dict["operator"] == "*":
-                body_dict["result"] = (
-                    body_dict["operands"][0] * body_dict["operands"][1]
+            elif message_dict["operator"] == "*":
+                message_dict["result"] = (
+                    message_dict["operands"][0] * message_dict["operands"][1]
                 )
 
-            elif body_dict["operator"] == "/":
-                body_dict["result"] = (
-                    body_dict["operands"][0] / body_dict["operands"][1]
+            elif message_dict["operator"] == "/":
+                message_dict["result"] = (
+                    message_dict["operands"][0] / message_dict["operands"][1]
                 )
 
             # else:
@@ -58,11 +58,11 @@ def main():
 
             else:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-                result_json = json.dumps(body_dict)
+                result_json = json.dumps(message_dict)
 
                 ch.basic_publish(exchange="", routing_key="queue_B", body=result_json)
-        except:
-            print("except", flush=True)
+        except Exception as e:
+            print(f"Found exception : {e}", flush=True)
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     channel.basic_consume(queue="queue_A", on_message_callback=callback, auto_ack=False)

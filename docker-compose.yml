@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  rabbit:
+    image: rabbitmq:3.9-management
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+
+  worker_a:
+    build: .
+    # restart: on-failure
+    depends_on:
+      - "rabbit"
+      - "mongodb"
+    command: ["./wait-for-it.sh", "rabbit:5672", "--", "python", "./src/worker_A.py"]
+
+  worker_b:
+    build: .
+    # restart: on-failure
+    depends_on:
+      - "rabbit"
+      - "mongodb"
+    command: ["./wait-for-it.sh", "rabbit:5672", "--", "python", "./src/worker_B.py"]
+
+
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
+

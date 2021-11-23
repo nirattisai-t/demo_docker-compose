@@ -5,19 +5,18 @@ import json
 
 def main():
     def callback(ch, method, properties, body):
-        body = body.decode("utf-8")
-        body = json.loads(body)
-        print(f"Message received: {body}", flush=True)
+        message_dict = json.loads(body.decode("utf-8"))
+        print(f"Message received: {message_dict}", flush=True)
 
         # worker_B publish the message to mongodb
-        collection.insert_one(body)
+        collection.insert_one(message_dict)
 
     ## add logic to do the operant
     ## remove gateway connection and use service name instead
 
     # Mongodb connection
-    client = MongoClient(host="mongodb")
-    collection = client["test_db"]["test_collection"]
+    mongo_client = MongoClient(host="mongodb")
+    collection = mongo_client["test_db"]["test_collection"]
 
     # RabbitMQ connection
     connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbit"))

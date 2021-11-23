@@ -4,8 +4,16 @@ def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbit"))
     channel = connection.channel()
 
-    channel.queue_declare(queue='queue_A')
+    channel.exchange_declare(exchange="dlx", exchange_type="direct")
+
+    channel.queue_declare(queue='queue_A', arguments={
+        "x-dead-letter-exchange": "dlx",
+        "x-dead-letter-routing-key": "dlx_key"
+    })
     channel.queue_declare(queue='queue_B')
+
+    channel.queue_declare(queue="dl_queue")
+    channel.queue_bind(queue="dl_queue", exchange="dlx", routing_key="dlx_key")
 
 
 
@@ -36,7 +44,7 @@ def main():
                 has_error = True
 
             if has_error:    
-                ch.basic_nack(delivery_tag = method.delivery_tag,requeue = True)
+                ch.basic_nack(delivery_tag = method.delivery_tag,requeue = False)
             else:
                 ch.basic_ack(delivery_tag = method.delivery_tag)
                 result_json = json.dumps(body_dict)
@@ -44,7 +52,7 @@ def main():
                 ch.basic_publish(exchange='', routing_key='queue_B', body=result_json)
         except:
                 print("except", flush=True)
-                ch.basic_nack(delivery_tag = method.delivery_tag ,requeue = True)
+                ch.basic_nack(delivery_tag = method.delivery_tag ,requeue = False)
 
     
 

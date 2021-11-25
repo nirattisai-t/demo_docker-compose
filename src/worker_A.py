@@ -2,7 +2,15 @@ import pika, sys, os, json
 
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbit"))
+    RABBIT_USER = os.getenv("RABBITMQ_DEFAULT_USER")
+    RABBIT_PASS = os.getenv("RABBITMQ_DEFAULT_PASSWORD")
+    RABBIT_HOST = os.getenv("RABBITMQ_HOST")
+    RABBIT_PORT = os.getenv("RABBITMQ_PORT")
+    # RABBIT_URL = f"amqp://{RABBIT_USER}:{RABBIT_PASS}@{RABBIT_HOST}:{RABBIT_PORT}"
+    # connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URL))
+    credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
+    parameters = pika.ConnectionParameters(host=RABBIT_HOST, credentials=credentials)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.exchange_declare(exchange="dlx", exchange_type="direct")

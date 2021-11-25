@@ -3,16 +3,30 @@ services:
   rabbit:
     image: rabbitmq:3.9-management
     ports:
-    - "5672:5672"
-    - "15672:15672"
-
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
   worker_a:
     build: .
     # restart: on-failure
     depends_on:
       - "rabbit"
       - "mongodb"
-    command: ["./wait-for-it.sh", "rabbit:5672", "--", "python", "./src/worker_A.py"]
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+    command:
+      [
+        "./wait-for-it.sh",
+        "rabbit:5672",
+        "--",
+        "python",
+        "./src/worker_A.py"
+      ]
 
   worker_b:
     build: .
@@ -20,11 +34,29 @@ services:
     depends_on:
       - "rabbit"
       - "mongodb"
-    command: ["./wait-for-it.sh", "rabbit:5672", "--", "python", "./src/worker_B.py"]
-
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_PORT=${MONGODB_PORT}
+    command:
+      [
+        "./wait-for-it.sh",
+        "rabbit:5672",
+        "--",
+        "python",
+        "./src/worker_B.py"
+      ]
 
   mongodb:
     image: mongo
     ports:
       - "27017:27017"
-
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}

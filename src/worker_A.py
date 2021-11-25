@@ -54,7 +54,33 @@ def main():
                 has_error = True
 
             if has_error:
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                # if x-death-count>=3
+                if not properties.headers:  # no header in a message
+                    properties.headers["x-death-count"] = 1
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    
+                    ch.basic_publish(
+                        exchange="",
+                        routing_key="queue_A",
+                        body=body,
+                        properties=properties
+                    )
+                    print(f'Retry count: {properties.headers["x-death-count"]}')
+                else:
+                    if properties.headers["x-death-count"] < 3:
+                        properties.headers["x-death-count"] += 1
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                        ch.basic_publish(
+                            exchange="",
+                            routing_key="queue_A",
+                            body=body,
+                            properties=properties
+                        )
+                        print(f'Retry count: {properties.headers["x-death-count"]}')
+                    else:
+                        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                # else
+                # ch.basic_publish(exchange="", routing_key="queue_A", body=body, properties)
 
             else:
                 ch.basic_ack(delivery_tag=method.delivery_tag)

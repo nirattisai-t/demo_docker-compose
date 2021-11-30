@@ -1,6 +1,3 @@
-
-
-
 def calculate(operator: str, operands: list):
     if operator == "+":
         result = operands[0] + operands[1]

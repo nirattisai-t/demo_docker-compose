@@ -1,4 +1,5 @@
 import pika, sys, os, json
+from calculator_utils import calculate, check_invalid_operator, check_invalid_operands
 
 
 def main():
@@ -36,65 +37,39 @@ def main():
             message_dict = json.loads(body.decode("utf-8"))
             print(f"Message received: {body}", flush=True)
 
-            if message_dict["operator"] == "+":
-                message_dict["result"] = (
-                    message_dict["operands"][0] + message_dict["operands"][1]
-                )
+            operator = message_dict["operator"]
+            operands = message_dict["operands"]
 
-            elif message_dict["operator"] == "-":
-                message_dict["result"] = (
-                    message_dict["operands"][0] - message_dict["operands"][1]
-                )
+            has_error = check_invalid_operator(operator) or check_invalid_operands(operands)
+            # print(has_error, flush=True)
 
-            elif message_dict["operator"] == "*":
-                message_dict["result"] = (
-                    message_dict["operands"][0] * message_dict["operands"][1]
-                )
-
-            elif message_dict["operator"] == "/":
-                message_dict["result"] = (
-                    message_dict["operands"][0] / message_dict["operands"][1]
-                )
-
-            # else:
-            # add exception scenario
-            else:
-                has_error = True
-
-            if has_error:
-                # if x-death-count>=3
-                if not properties.headers:  # no header in a message
-                    properties.headers["x-death-count"] = 1
-                    ch.basic_ack(delivery_tag=method.delivery_tag)
-                    
-                    ch.basic_publish(
-                        exchange="",
-                        routing_key="queue_A",
-                        body=body,
-                        properties=properties
-                    )
-                    print(f'Retry count: {properties.headers["x-death-count"]}')
-                else:
-                    if properties.headers["x-death-count"] < 3:
-                        properties.headers["x-death-count"] += 1
-                        ch.basic_ack(delivery_tag=method.delivery_tag)
-                        ch.basic_publish(
-                            exchange="",
-                            routing_key="queue_A",
-                            body=body,
-                            properties=properties
-                        )
-                        print(f'Retry count: {properties.headers["x-death-count"]}')
-                    else:
-                        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-                # else
-                # ch.basic_publish(exchange="", routing_key="queue_A", body=body, properties)
-
-            else:
+            if not has_error:
+                message_dict["result"] = calculate(operator, operands)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 result_json = json.dumps(message_dict)
 
                 ch.basic_publish(exchange="", routing_key="queue_B", body=result_json)
+
+            elif not properties.headers:
+                properties.headers["x-death-count"] = 1
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                ch.basic_publish(
+                    exchange="", routing_key="queue_A", body=body, properties=properties
+                )
+                print(f'Retry count: {properties.headers["x-death-count"]}')
+            elif properties.headers["x-death-count"] < 3:
+                properties.headers["x-death-count"] += 1
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                ch.basic_publish(
+                    exchange="", routing_key="queue_A", body=body, properties=properties
+                )
+                print(f'Retry count: {properties.headers["x-death-count"]}')
+            else:
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                print(
+                    "Retry failed: The message is published to Death-Letter", flush=True
+                )
+
         except Exception as e:
             print(f"Found exception : {e}", flush=True)
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)

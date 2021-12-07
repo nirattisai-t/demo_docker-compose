@@ -31,7 +31,8 @@ def main():
             print(f"Message received: {message_dict}", flush=True)
 
             # worker_B publish the message to mongodb
-            mongo.insert_document("test_db", "test_collection", message_dict)
+            test_collection = mongo.get_collection("test_db", "test_collection")
+            mongo.insert_document(test_collection, message_dict)
             rabbit.basic_ack(delivery_tag = method.delivery_tag)
         except Exception as e:
             print(f"Found exception in callback : {e}", flush=True)

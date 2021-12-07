@@ -1,6 +1,6 @@
 import os
 
-from pymongo import MongoClient 
+from pymongo import MongoClient
 from pymongo.collection import Collection as MongoCollection
 
 
@@ -17,10 +17,8 @@ class MongoDB:
     def connect_to_mongo(self) -> None:
         self.connection = MongoClient(self.uri)
 
-    # Fix Pylance return type warning
-    def _get_collection(self, database: str, collection: str) -> MongoCollection:
+    def get_collection(self, database: str, collection: str) -> MongoCollection:
         return self.connection[database][collection]
 
-    def insert_document(self, database: str, collection: str, document: object) -> None:
-        collection = self._get_collection(database=database, collection=collection)
+    def insert_document(self, collection: MongoCollection, document: object) -> None:
         collection.insert_one(document)

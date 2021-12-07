@@ -30,13 +30,6 @@ rabbit.bind_queue_to_exchange(queue="dl_queue", exchange="dlx", routing_key="dlx
 
 def main():
 
-    # RABBIT_URL = f"amqp://{RABBIT_USER}:{RABBIT_PASS}@{RABBIT_HOST}:{RABBIT_PORT}"
-    # connection = pika.BlockingConnection(pika.URLParameters(RABBIT_URL))
-    # credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS)
-    # parameters = pika.ConnectionParameters(host=RABBIT_HOST, credentials=credentials)
-    # connection = pika.BlockingConnection(parameters)
-    # channel = connection.channel()
-
     def callback(ch, method, properties, body):
         has_error = False
         # Calculate

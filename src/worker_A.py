@@ -1,10 +1,22 @@
-from enum import auto
-import pika, sys, os, json
-# from calculator_utils import calculate, check_invalid_operator, check_invalid_operands
+import sys, os, json, logging
 from utils.calculator_utils import calculate, check_invalid_operator, check_invalid_operands
-
 from services.rabbitmq import RabbitMQ
-from services.mongodb import MongoDB
+
+
+logFormatter = logging.Formatter("%(levelname)s:%(message)s")
+logger = logging.getLogger("worker_A")
+logger.setLevel(logging.INFO)
+
+
+fileHandler = logging.FileHandler("worker_A.log")
+fileHandler.setFormatter(logFormatter)
+logger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
+
+
 
 ## Get environment variables
 RABBIT_USER = os.getenv("RABBITMQ_DEFAULT_USER")
@@ -22,8 +34,8 @@ rabbit.queue_declare(
         "x-dead-letter-routing-key": "dlx_key",
     },
 )
-rabbit.queue_declare(queue="queue_B")
 rabbit.queue_declare(queue="dl_queue")
+rabbit.queue_declare(queue="queue_B")
 
 rabbit.bind_queue_to_exchange(queue="dl_queue", exchange="dlx", routing_key="dlx_key")
 
@@ -37,7 +49,7 @@ def main():
         # Assume 2 operands, if operator = "-" --> x1 - x2
         try:
             message_dict = json.loads(body.decode("utf-8"))
-            print(f"Message received: {body}", flush=True)
+            logger.info(f"Message received: {body}")
 
             operator = message_dict["operator"]
             operands = message_dict["operands"]
@@ -45,7 +57,6 @@ def main():
             has_error = check_invalid_operator(operator) or check_invalid_operands(
                 operands
             )
-            # print(has_error, flush=True)
 
             if not has_error:
                 message_dict["result"] = calculate(operator, operands)
@@ -67,6 +78,10 @@ def main():
                     properties=properties,
                     delivery_tag=method.delivery_tag,
                 )
+                # rabbit.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                logger.info(f'Retry count: {properties.headers["x-death-count"]}')
+
+
             elif properties.headers["x-death-count"] < 3:
                 properties.headers["x-death-count"] += 1
                 rabbit.retry_same_queue(
@@ -75,27 +90,29 @@ def main():
                     properties=properties,
                     delivery_tag=method.delivery_tag,
                 )
+                # rabbit.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                logger.info(f'Retry count: {properties.headers["x-death-count"]}')
+
             else:
+                # Check that if requeue = True, message gose to both dl_q and q_A or just q_A
                 rabbit.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-                print(
-                    "Retry failed: The message is published to Death-Letter", flush=True
+                logger.warning(
+                    "Retry failed: The message is published to Death-Letter"
                 )
 
         except Exception as e:
-            print(f"Found exception : {e}", flush=True)
+            logger.error(f"Found exception : {e}")
             rabbit.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     rabbit.consume(queue="queue_A", callback=callback, auto_ack=False)
-    # channel.basic_consume(queue="queue_A", on_message_callback=callback, auto_ack=False)
-    print(" [*] Waiting for messages. To exit press CTRL+C")
-    # channel.start_consuming()
+    logger.info(" [*] Waiting for messages from queue_A")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("Interrupted")
+        logger.info("Interrupted")
         try:
             sys.exit(0)
         except SystemExit:

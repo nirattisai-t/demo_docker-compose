@@ -45,12 +45,11 @@ class RabbitMQ:
         self.channel.basic_publish(
             exchange=exchange, routing_key=routing_key, body=body, properties=properties
         )
-
+    # TODO change this, if there are 100 messages, the retry has to wait for 100 messages 
     def retry_same_queue(self, queue:str,body: object, properties:object, delivery_tag:int):
         self.basic_ack(delivery_tag=delivery_tag)
         self.publish_to_queue(exchange="", routing_key=queue, body=body, properties=properties)
 
-        print(f'Retry count: {properties.headers["x-death-count"]}', flush=True)
 
         
     
